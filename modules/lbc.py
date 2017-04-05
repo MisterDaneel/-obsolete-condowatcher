@@ -56,7 +56,7 @@ def check_lbc(target):
     links = []
     for list_item in pageSoup.findAll('a',attrs={"class":"list_item"}):
         href = list_item.get('href')
-        if not href:
+        if not href or not "ventes_immobilieres" in href:
             continue
 
         # href
