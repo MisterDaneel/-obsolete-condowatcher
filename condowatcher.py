@@ -59,9 +59,10 @@ def create_db(work_dir):
 def check_websites(db, logger):
     # LeBonCoin
     if 'url_leboncoin' in configuration:
-        for url, title, img in lbc.check_lbc(configuration['url_leboncoin']):
-            request = "insert or ignore into links ('date', 'url', 'title', 'img') values (?,?,?,?);"
-            db.execute(request, (datetime.now(), url, title, img))
+        for link in configuration['url_leboncoin']:
+            for url, title, img in lbc.check_lbc(link):
+                request = "insert or ignore into links ('date', 'url', 'title', 'img') values (?,?,?,?);"
+                db.execute(request, (datetime.now(), url, title, img))
     # SeLoger
     if 'url_seloger' in configuration:
         for url, title, img in slg.check_slg(configuration['url_seloger'], logger):
@@ -83,7 +84,6 @@ def get_new_links(db, logger):
     return (nb, text)
 
 def send_mail(nb_links, msg, logger):
-    msg = "We found %d articles matching your searches:<br />" % nb_links + '\n' + msg
     mail = MIMEText(msg, 'html')
     mail['Subject'] = "CondoWatcher : %d articles" % nb_links
     mail['From'] = configuration['mail_from']

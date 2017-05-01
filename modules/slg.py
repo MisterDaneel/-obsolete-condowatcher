@@ -55,7 +55,11 @@ def check_slg(target, logger):
     except ConnectionError as e:
         logger.error(e)
         return []
-    response = s.get(target, headers=headers)
+    try:
+        response = s.get(target, headers=headers)
+    except ConnectionError as e:
+        logger.error(e)
+        return []
     if "Une erreur" in response.text:
         logger.error("SeLoger Error")
         return []
@@ -63,10 +67,14 @@ def check_slg(target, logger):
     links = []
     for article in soup.select('article.listing.life_annuity'):
         listing_infos = article.find('div',attrs={"class":"listing_infos"})
+
         a = listing_infos.find('a',attrs={'class': None})
 
         # href
         href = a.attrs.get('href')
+
+        if 'detailpolepo' in href:
+            continue
 
         # title
         title = 'SeLoger: '

@@ -62,7 +62,7 @@ def check_lbc(target):
         # href
         href = href.replace('//www', 'https://www')
         item_infos = list_item.find('section',attrs={"class":"item_infos"})
-            
+
         # title
 	title = 'LeBonCoin: '
         title += get_date(item_infos)
