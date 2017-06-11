@@ -13,17 +13,28 @@ headers = {
 #
 # Price
 #
-def get_price(listing_infos):
+def get_price(listing_infos, logger):
     try:
-        amount = listing_infos.find('a',attrs={"class":"amount"})
-        return amount.text
+        amount = listing_infos.find('div',attrs={"class":"price same_price"})
+        return amount.text.strip()
     except:
+        logger.error("SeLoger NoPrice")
         return ''
 
 #
 # Properties
 #
-def get_properties(listing_infos):
+def get_locality(listing_infos, logger):
+    try:
+        locality = listing_infos.find('div',attrs={"class":"locality"})
+        return locality.text.strip()
+    except:
+        logger.error("SeLoger locality")
+        return None
+#
+# Properties
+#
+def get_properties(listing_infos, logger):
     try:
         property_list = listing_infos.find('ul',attrs={"class":"property_list"})
         properties = ''
@@ -32,17 +43,19 @@ def get_properties(listing_infos):
                 properties += ' - ' + li.text
         return properties
     except:
+        logger.error("SeLoger NoInfos")
         return ''
 
 #
 # Image
 #
-def get_img(article):
+def get_img(article, logger):
     try:
         div = article.find('div',attrs={"class":"listing_photo_container"})
         img = div.find('',attrs={"class":"listing_photo"})
         return img.attrs.get('src')
     except:
+        logger.error("SeLoger NoImg")
         return ''
 
 #
@@ -65,9 +78,9 @@ def check_slg(target, logger):
         return []
     soup = bs(response.text, "lxml")
     links = []
-    for article in soup.select('article.listing.life_annuity'):
-        listing_infos = article.find('div',attrs={"class":"listing_infos"})
 
+    for article in soup.select('article.cartouche.life_annuity'):
+        listing_infos = article.find('div',attrs={"class":"listing_infos"})
         a = listing_infos.find('a',attrs={'class': None})
 
         # href
@@ -78,14 +91,13 @@ def check_slg(target, logger):
 
         # title
         title = 'SeLoger: '
-	title += a.attrs.get('title')
-        title += get_properties(listing_infos)
+        title += get_locality(listing_infos, logger)
+        title += get_properties(listing_infos, logger)
+
         title += ' - '
-	title += get_price(listing_infos)
-
+        title += get_price(listing_infos, logger)
         # img
-        img = get_img(article)
-
+        img = get_img(article, logger)
         # append
         links.append((href, title, img))
     return links
