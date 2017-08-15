@@ -2,6 +2,7 @@
 
 import os
 import json
+import requests
 import sqlite3
 import smtplib
 import logging
@@ -11,12 +12,13 @@ from datetime import datetime
 from modules import lbc
 from modules import slg
 from time import sleep
+from argparse import ArgumentParser
+from sys import argv
+from os import path
 
-with open('configuration.json') as configuration_file:
-    configuration = json.load(configuration_file)
 
 def create_logger(work_dir):
-    log_dir = os.path.join (work_dir, "logs")
+    log_dir = os.path.join(work_dir, "logs")
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
@@ -29,10 +31,13 @@ def create_logger(work_dir):
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    stLogfile = logging.handlers.RotatingFileHandler(log_dir+'/log', maxBytes=256*1024, backupCount=10)
+    stLogfile = logging.handlers.RotatingFileHandler(log_dir+'/log',
+                                                     maxBytes=256*1024,
+                                                     backupCount=10)
     stLogfile.setFormatter(formatter)
     logger.addHandler(stLogfile)
     return logger
+
 
 def create_db(work_dir):
     db_dir = os.path.join(work_dir, "sqlite3")
@@ -56,40 +61,55 @@ def create_db(work_dir):
     db.close()
     return db_dir
 
+
 def check_websites(db, logger):
     # LeBonCoin
     if 'url_leboncoin' in configuration:
+        session = requests.Session()
         for link in configuration['url_leboncoin']:
-            for url, title, img in lbc.check_lbc(link):
-                request = "insert or ignore into links ('date', 'url', 'title', 'img') values (?,?,?,?);"
+            for url, title, img in lbc.check_lbc(session, link, logger):
+                request = "insert or ignore into links "
+                request += "('date', 'url', 'title', 'img') "
+                request += "values (?,?,?,?);"
                 db.execute(request, (datetime.now(), url, title, img))
     # SeLoger
     if 'url_seloger' in configuration:
-        for url, title, img in slg.check_slg(configuration['url_seloger'], logger):
-            request = "insert or ignore into links ('date', 'url', 'title', 'img') values (?,?,?,?);"
+        session = requests.Session()
+        for url, title, img in slg.check_slg(session,
+                                             configuration['url_seloger'],
+                                             logger):
+            request = "insert or ignore into links "
+            request += "('date', 'url', 'title', 'img') "
+            request += "values (?,?,?,?);"
             db.execute(request, (datetime.now(), url, title, img))
     db.commit()
+
 
 def get_new_links(db, logger):
     text = '<ul>\n'
     nb = 0
-    links = db.execute("select rowid, url, title, img from links where emailed=0;")
+    request = "select rowid, url, title, img "
+    request += "from links where emailed=0;"
+    links = db.execute(request)
     for rowid, link, title, img in links:
         logger.info("We have new link : {link}.".format(link=link))
-        text += '<li><a href="{link}">{title}</a><br>\n<img src="{img}"></li>\n'.format(link=link, title=title.encode('utf-8'), img=img)
+        text += '<li><a href="{link}">'.format(link=link)
+        text += '{title}</a><br>\n"'.format(title=title.encode('utf-8'))
+        text += '<img src="{img}"></li>\n'.format(img=img)
         nb += 1
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
     db.commit()
     text += '</ul>\n'
     return (nb, text)
 
+
 def send_mail(nb_links, msg, logger):
     mail = MIMEText(msg, 'html')
-    mail['Subject'] = "CondoWatcher : %d articles" % nb_links
+    mail['Subject'] = "CondoWatcher"  #: %d articles" % nb_links
     mail['From'] = configuration['mail_from']
     mail['To'] = ", ".join(configuration['mail_to'])
 
-    smtp = smtplib.SMTP("smtp.gmail.com",587)
+    smtp = smtplib.SMTP("smtp.gmail.com", 587)
     smtp.ehlo()
     smtp.starttls()
     smtp.ehlo()
@@ -99,10 +119,14 @@ def send_mail(nb_links, msg, logger):
 
     logger.info("We are sending an email to: %s with %d articles matching your searches" % (mail['To'], nb_links))
 
+
 #
 # MAIN
 #
-work_dir= os.path.join(os.environ['HOME'], ".cwatcher")
+with open('configuration.json') as configuration_file:
+    configuration = json.load(configuration_file)
+
+work_dir = configuration['working_directory']
 if not os.path.isdir(work_dir):
     os.mkdir(work_dir)
 logger = create_logger(work_dir)
@@ -117,5 +141,5 @@ while (True):
         logger.info("We don't have anything to send !")
         sleep(configuration['waiting_time'])
         continue
-    send_mail (nb_links, text, logger)
+    send_mail(nb_links, text, logger)
     sleep(configuration['waiting_time'])
