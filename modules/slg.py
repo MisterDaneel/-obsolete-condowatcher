@@ -1,4 +1,5 @@
 import re
+import ast
 import requests
 from requests.exceptions import ConnectionError
 import argparse
@@ -14,9 +15,11 @@ headers = {
 #
 def get_price(listing_infos, logger):
     try:
-        amount = listing_infos.find('div',
-                                    attrs={"class": "price same_price"})
-        return amount.text.strip()
+        amount = listing_infos.find('span',
+                                    attrs={"class": "c-pa-cprice"})
+        price = amount.text.strip()
+        logger.debug("price: %s" % price)        
+        return price
     except:
         logger.error("SeLoger NoPrice")
         return ''
@@ -27,8 +30,10 @@ def get_price(listing_infos, logger):
 #
 def get_locality(listing_infos, logger):
     try:
-        locality = listing_infos.find('div', attrs={"class": "locality"})
-        return locality.text.strip()
+        div = listing_infos.find('div', attrs={"class": "c-pa-city"})
+        locality = div.text.strip()
+        logger.debug("locality: %s" % locality)
+        return locality
     except:
         logger.error("SeLoger locality")
         return None
@@ -39,11 +44,12 @@ def get_locality(listing_infos, logger):
 #
 def get_properties(listing_infos, logger):
     try:
-        property_list = listing_infos.find('ul', attrs={"class": "property_list"})
+        property_list = listing_infos.find('div', attrs={"class": "c-pa-criterion"})
         properties = ''
         if property_list:
-            for li in property_list.findAll('li'):
-                properties += ' - ' + li.text
+            for em in property_list.findAll('em'):
+                properties += ' - ' + em.text
+        logger.debug("properties: %s" % properties)
         return properties
     except:
         logger.error("SeLoger NoInfos")
@@ -55,9 +61,15 @@ def get_properties(listing_infos, logger):
 #
 def get_img(article, logger):
     try:
-        div = article.find('div', attrs={"class": "listing_photo_container"})
-        img = div.find('', attrs={"class": "listing_photo"})
-        return img.attrs.get('src')
+        div = article.find('div', attrs={"class": "slideContent"})
+        img = div.find('div')#, attrs={"class": "listing_photo"})
+        img = img.get('data-lazy')
+
+        dict = ast.literal_eval(img)
+        img = dict['url']
+
+        logger.debug('img: %s' % img)
+        return img
     except:
         logger.error("SeLoger NoImg")
         return ''
@@ -83,13 +95,15 @@ def check_slg(session, target, logger):
         return []
     soup = bs(response.text, "lxml")
     links = []
+    for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):#select('article.cartouche.life_annuity'):
+        logger.debug("Article found")
 
-    for article in soup.select('article.cartouche.life_annuity'):
-        listing_infos = article.find('div', attrs={"class": "listing_infos"})
-        a = listing_infos.find('a', attrs={'class': None})
+        listing_infos = article.find('div', attrs={"class": "c-pa-info"})
+        a = listing_infos.find('a', attrs={'class': "c-pa-link"})
 
         # href
         href = a.attrs.get('href')
+        logger.debug("href: %s" % href)
 
         if 'detailpolepo' in href:
             continue
@@ -105,4 +119,7 @@ def check_slg(session, target, logger):
         img = get_img(article, logger)
         # append
         links.append((href, title, img))
+
+    if  not links:
+        logger.error("SeLoger Error: Something wrong appends, no articles found")
     return links
