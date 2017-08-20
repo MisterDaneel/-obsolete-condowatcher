@@ -94,7 +94,7 @@ def get_new_links(db, logger):
     for rowid, link, title, img in links:
         logger.info("We have new link : {link}.".format(link=link))
         text += '<li><a href="{link}">'.format(link=link)
-        text += '{title}</a><br>\n"'.format(title=title.encode('utf-8'))
+        text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
         text += '<img src="{img}"></li>\n'.format(img=img)
         nb += 1
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
@@ -105,7 +105,10 @@ def get_new_links(db, logger):
 
 def send_mail(nb_links, msg, logger):
     mail = MIMEText(msg, 'html')
-    mail['Subject'] = "CondoWatcher"  #: %d articles" % nb_links
+    if 'mail_subject' in configuration:
+        mail['Subject'] = configuration['mail_subject']
+    else:
+        mail['Subject'] = "CondoWatcher"  #: %d articles" % nb_links
     mail['From'] = configuration['mail_from']
     mail['To'] = ", ".join(configuration['mail_to'])
 
