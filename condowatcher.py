@@ -7,6 +7,7 @@ import sqlite3
 import smtplib
 import logging
 import logging.handlers
+from random import randint
 from email.mime.text import MIMEText
 from datetime import datetime
 from modules import lbc
@@ -74,12 +75,12 @@ def check_websites(db, logger):
     # LeBonCoin
     if 'url_leboncoin' in configuration:
         for link in configuration['url_leboncoin']:
-            infos = lbc.check_lbc(session_lbc, link, logger):
+            infos = lbc.check_lbc(session_lbc, link, logger)
             add_to_db(db, infos)
     # SeLoger
     if 'url_seloger' in configuration:
         infos = slg.check_slg(session_slg, configuration['url_seloger'],
-                              logger):
+                              logger)
         add_to_db(db, infos)
     db.commit()
 
@@ -118,9 +119,13 @@ def send_mail(nb_links, msg, logger):
     smtp.login(configuration['mail_from'], configuration['mail_from_password'])
     smtp.sendmail(mail['From'], configuration['mail_to'], mail.as_string())
     smtp.quit()
-
     logger.info("We are sending an email to: %s with %d articles matching your searches" % (mail['To'], nb_links))
 
+
+def wait(waiting_time):
+    rand_int = randint(-10, 10)
+    waiting_time = (waiting_time * rand_int) / 100
+    sleep(configuration['waiting_time'])
 
 #
 # MAIN
@@ -145,4 +150,4 @@ while (True):
         sleep(configuration['waiting_time'])
         continue
     send_mail(nb_links, text, logger)
-    sleep(configuration['waiting_time'])
+    wait(configuration['waiting_time'])
