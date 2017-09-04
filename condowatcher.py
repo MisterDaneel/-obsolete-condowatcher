@@ -2,6 +2,7 @@
 
 import os
 import json
+import argparse
 import requests
 import sqlite3
 import smtplib
@@ -18,13 +19,16 @@ from sys import argv
 from os import path
 
 
-def create_logger(work_dir):
+def create_logger(work_dir, debug=False):
     log_dir = os.path.join(work_dir, "logs")
     if not os.path.isdir(log_dir):
         os.mkdir(log_dir)
 
     logger = logging.getLogger("")
-    logger.setLevel(logging.INFO)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     formatter = logging.Formatter("%(asctime)s %(message)s")
 
@@ -140,13 +144,32 @@ def wait(waiting_time):
 #
 # MAIN
 #
-with open('configuration.json') as configuration_file:
-    configuration = json.load(configuration_file)
+
+def parse_args():
+   """Create the arguments"""
+   parser = argparse.ArgumentParser('\nxmlpem.py --xmltopem --public mypublickeyfile.xml\nxmlpem.py --pentoxml --private myprivatekeyfile.pem')
+   parser.add_argument("-v", "--verbose", help="Verbose", action='store_true')
+   parser.add_argument("-c", "--configuration", help="Configuration file")
+   return parser.parse_args()
+#
+# Main
+#
+args = parse_args()
+if args.configuration:
+    configuration_file = args.configuration
+else:
+    configuration_file = 'configuration.json'
+
+with open(configuration_file) as f:
+    configuration = json.load(f)
 
 work_dir = configuration['working_directory']
 if not os.path.isdir(work_dir):
     os.mkdir(work_dir)
-logger = create_logger(work_dir)
+if args.verbose:
+    logger = create_logger(work_dir, True)
+else:
+    logger = create_logger(work_dir, False)
 db_dir = create_db(work_dir)
 session_slg = requests.Session()
 session_lbc = requests.Session()
