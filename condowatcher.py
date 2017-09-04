@@ -62,26 +62,25 @@ def create_db(work_dir):
     return db_dir
 
 
+def add_to_db(db, infos):
+    for url, title, img in infos:
+        request = "insert or ignore into links "
+        request += "('date', 'url', 'title', 'img') "
+        request += "values (?,?,?,?);"
+        db.execute(request, (datetime.now(), url, title, img))
+
+
 def check_websites(db, logger):
     # LeBonCoin
     if 'url_leboncoin' in configuration:
-        session = requests.Session()
         for link in configuration['url_leboncoin']:
-            for url, title, img in lbc.check_lbc(session, link, logger):
-                request = "insert or ignore into links "
-                request += "('date', 'url', 'title', 'img') "
-                request += "values (?,?,?,?);"
-                db.execute(request, (datetime.now(), url, title, img))
+            infos = lbc.check_lbc(session_lbc, link, logger):
+            add_to_db(db, infos)
     # SeLoger
     if 'url_seloger' in configuration:
-        session = requests.Session()
-        for url, title, img in slg.check_slg(session,
-                                             configuration['url_seloger'],
-                                             logger):
-            request = "insert or ignore into links "
-            request += "('date', 'url', 'title', 'img') "
-            request += "values (?,?,?,?);"
-            db.execute(request, (datetime.now(), url, title, img))
+        infos = slg.check_slg(session_slg, configuration['url_seloger'],
+                              logger):
+        add_to_db(db, infos)
     db.commit()
 
 
@@ -134,7 +133,8 @@ if not os.path.isdir(work_dir):
     os.mkdir(work_dir)
 logger = create_logger(work_dir)
 db_dir = create_db(work_dir)
-
+session_slg = requests.Session()
+session_lbc = requests.Session()
 while (True):
     db = sqlite3.connect(db_dir)
     check_websites(db, logger)
