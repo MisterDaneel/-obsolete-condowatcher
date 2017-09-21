@@ -96,11 +96,14 @@ def get_new_links(db, logger):
         text += '<li><a href="{link}">'.format(link=link)
         text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
         text += '<img src="{img}"></li>\n'.format(img=img)
-        nb += 1
+    text += '</ul>\n'
+    return (links, text)
+
+
+def emailed_links(db, links):
+    for rowid, _, _, _ in links:
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
     db.commit()
-    text += '</ul>\n'
-    return (nb, text)
 
 
 def send_mail(nb_links, msg, logger):
@@ -117,6 +120,7 @@ def send_mail(nb_links, msg, logger):
     smtp.starttls()
     smtp.ehlo()
     smtp.login(configuration['mail_from'], configuration['mail_from_password'])
+    # try:
     smtp.sendmail(mail['From'], configuration['mail_to'], mail.as_string())
     smtp.quit()
     logger.info("We are sending an email to: %s with %d articles matching your searches" % (mail['To'], nb_links))
@@ -143,11 +147,12 @@ session_lbc = requests.Session()
 while (True):
     db = sqlite3.connect(db_dir)
     check_websites(db, logger)
-    nb_links, text = get_new_links(db, logger)
+    links, text = get_new_links(db, logger)
     db.close()
-    if not nb_links:
+    if not links:
         logger.info("We don't have anything to send !")
         sleep(configuration['waiting_time'])
         continue
-    send_mail(nb_links, text, logger)
+    send_mail(len(links), text, logger)
+    emailed_links(db, links)
     wait(configuration['waiting_time'])
