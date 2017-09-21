@@ -120,10 +120,16 @@ def send_mail(nb_links, msg, logger):
     smtp.starttls()
     smtp.ehlo()
     smtp.login(configuration['mail_from'], configuration['mail_from_password'])
-    # try:
-    smtp.sendmail(mail['From'], configuration['mail_to'], mail.as_string())
-    smtp.quit()
-    logger.info("We are sending an email to: %s with %d articles matching your searches" % (mail['To'], nb_links))
+    for i in range(3):
+        try:
+            smtp.sendmail(mail['From'], configuration['mail_to'], mail.as_string())
+            logger.info("We are sending an email to: %s with %d articles" % (mail['To'], nb_links))
+            smtp.quit()
+            return True
+        except:
+            logger.info("We failed to send an email to: %s" % (mail['To']))
+            wait(120)
+    return False
 
 
 def wait(waiting_time):
@@ -153,6 +159,6 @@ while (True):
         logger.info("We don't have anything to send !")
         sleep(configuration['waiting_time'])
         continue
-    send_mail(len(links), text, logger)
-    emailed_links(db, links)
+    if send_mail(len(links), text, logger):
+        emailed_links(db, links)
     wait(configuration['waiting_time'])
