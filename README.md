@@ -23,6 +23,8 @@ apt-get install python python-pip
 
 pip install requests bs4
 
+apt-get install libxml2-dev libxslt1-dev python-dev python-lxml
+
 Usage
 -----
 Create an email address on gmail and enable 'insecure access' (allow less secure apps to access your account).

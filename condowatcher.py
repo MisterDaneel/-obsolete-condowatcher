@@ -89,23 +89,29 @@ def check_websites(db, logger):
     db.commit()
 
 
-def get_new_links(db, logger):
-    text = '<ul>\n'
-    nb = 0
+def request_links(db):
     request = "select rowid, url, title, img "
     request += "from links where emailed=0;"
-    links = db.execute(request)
+    return db.execute(request)
+
+
+def get_new_links(db, logger):
+    text = '<ul>\n'
+    links = request_links(db)
+    nb_links = 0
     for rowid, link, title, img in links:
         logger.info("We have new link : {link}.".format(link=link))
         text += '<li><a href="{link}">'.format(link=link)
         text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
         text += '<img src="{img}"></li>\n'.format(img=img)
+        nb_links += 1
     text += '</ul>\n'
-    return (links, text)
+    return (nb_links, text)
 
 
-def emailed_links(db, links):
-    for rowid, _, _, _ in links:
+def emailed_links(db):
+    links = request_links(db)
+    for rowid, url, title, img in links:
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
     db.commit()
 
@@ -176,12 +182,12 @@ session_lbc = requests.Session()
 while (True):
     db = sqlite3.connect(db_dir)
     check_websites(db, logger)
-    links, text = get_new_links(db, logger)
-    db.close()
-    if not links:
+    nb_links, text = get_new_links(db, logger)
+    if not nb_links:
         logger.info("We don't have anything to send !")
         sleep(configuration['waiting_time'])
         continue
-    if send_mail(len(links), text, logger):
-        emailed_links(db, links)
+    if send_mail(nb_links, text, logger):
+        emailed_links(db)
+    db.close()
     wait(configuration['waiting_time'])
