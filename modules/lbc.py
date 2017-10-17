@@ -44,7 +44,7 @@ def get_img(a_tag):
     for span in a_tag.findAll('span'):
         data_img_src = span.get('data-imgsrc')
         if data_img_src:
-            return data_img_src.replace('//', 'https://')
+            return data_img_src
     return ''
 
 
