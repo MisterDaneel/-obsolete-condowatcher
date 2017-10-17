@@ -10,8 +10,8 @@ Create a file: "configuration.json"
    "mail_from": "sender@gmail.com",
    "mail_from_password": "sender_password",
    "mail_to": ["one@example.com", "two@example.com"],
-   "waiting_time": 180,
-   "url_leboncoin": "https://www.leboncoin.fr/ventes_immobilieres/offres/foo/bar/?...",
+   "waiting_time": 300,
+   "url_leboncoin": ["https://www.leboncoin.fr/ventes_immobilieres/offres/foo/bar/?...", "https://www.leboncoin.fr/ventes_immobilieres/offres/foo/bar/?..."],
    "url_seloger": "http://www.seloger.com/list.htm?..."
 }
 ```
