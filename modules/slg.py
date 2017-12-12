@@ -102,7 +102,7 @@ def check_slg(session, target, logger):
         a = listing_infos.find('a', attrs={'class': "c-pa-link"})
 
         # href
-        href = a.attrs.get('href')
+        href = a.attrs.get('href').replace('x-thread', 'http')
         logger.debug("href: %s" % href)
 
         if 'detailpolepo' in href:

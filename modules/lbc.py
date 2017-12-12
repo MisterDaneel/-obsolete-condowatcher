@@ -42,7 +42,6 @@ def get_date(item_infos):
 #
 def get_img(a_tag):
     for span in a_tag.findAll('span'):
-        print span
         data_img_src = span.get('data-imgsrc')
         if data_img_src:
             return data_img_src
