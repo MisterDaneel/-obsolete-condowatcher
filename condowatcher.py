@@ -133,6 +133,7 @@ def get_new_links(db, logger):
         text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
         if desc:
             text += desc.encode('utf-8', 'ignore')
+            text += '<br>\n'
         text += '<img src="{img}"></li>\n'.format(img=img)
         nb_links += 1
     text += '</ul>\n'

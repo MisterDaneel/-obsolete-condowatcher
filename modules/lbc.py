@@ -49,6 +49,14 @@ def get_img(a_tag):
 
 
 #
+# Description
+#
+def get_description(pageSoup):
+    description = pageSoup.find('p', attrs={"itemprop": "description"})
+    return description.text
+
+
+#
 # This is for requests handling
 #
 def check(session, target, logger, headers):
@@ -82,8 +90,13 @@ def check(session, target, logger, headers):
         # img
         img = get_img(list_item)
 
-        # desc
-        desc = ''
+        # description
+        try:
+            response = session.get(href, headers=headers)
+            desc = get_description(bs(response.text, "lxml"))
+        except ConnectionError as e:
+            desc = ''
+            logger.error(e)
 
         # append
         links.append((href, title, img, desc))
