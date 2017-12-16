@@ -111,10 +111,15 @@ def check(session, target, logger, headers):
 
         title += ' - '
         title += get_price(listing_infos, logger)
+
         # img
         img = get_img(article, logger)
+
+        # desc
+        desc = ''
+
         # append
-        links.append((href, title, img))
+        links.append((href, title, img, desc))
     if  not links:
         logger.error("SeLoger Error: Something wrong appends, no articles found")
     return links

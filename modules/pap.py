@@ -46,6 +46,16 @@ def get_img(list_item):
 
 
 #
+# Description
+#
+def get_desc(list_item):
+    desc = list_item.find('p', attrs={"class": "item-description"})
+    if desc:
+        return desc.text
+    return
+
+
+#
 # This is for requests handling
 #
 
@@ -80,6 +90,10 @@ def check(session, target, logger, headers):
 
         # img
         img = get_img(list_item)
+
+        # img
+        desc = get_desc(list_item)
+
         # append
-        links.append((href, title, img))
+        links.append((href, title, img, desc))
     return links

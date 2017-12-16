@@ -80,6 +80,9 @@ def check(session, target, logger, headers):
         # img
         img = get_img(list_item)
 
+        # desc
+        desc = ''
+
         # append
-        links.append((href, title, img))
+        links.append((href, title, img, desc))
     return links

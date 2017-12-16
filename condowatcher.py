@@ -55,6 +55,7 @@ def create_db(work_dir):
         "url TEXT UNIQUE",
         "title TEXT UNIQUE",
         "img TEXT UNIQUE",
+        "desc TEXT UNIQUE",
         "nb_views INTEGER",
         "seen BOOL DEFAULT 0",
         "emailed BOOL DEFAULT 0"
@@ -70,11 +71,11 @@ def create_db(work_dir):
 
 
 def add_to_db(db, infos):
-    for url, title, img in infos:
+    for url, title, img, desc in infos:
         request = "insert or ignore into links "
-        request += "('date', 'url', 'title', 'img') "
-        request += "values (?,?,?,?);"
-        db.execute(request, (datetime.now(), url, title, img))
+        request += "('date', 'url', 'title', 'img', 'desc') "
+        request += "values (?,?,?,?,?);"
+        db.execute(request, (datetime.now(), url, title, img, desc))
 
 
 def check_website(db, logger, website, session, url):
@@ -96,16 +97,25 @@ def check_website(db, logger, website, session, url):
 
 def check_websites(db, logger):
     # LeBonCoin
-    check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
+    try:
+        check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
+    except Exception, e:
+        logger.error("Something went wrong on LeBonCoin: %s" % e)
     # SeLoger
-    check_website(db, logger, slg, session_slg, 'url_seloger')
+    try:
+        check_website(db, logger, slg, session_slg, 'url_seloger')
+    except Exception, e:
+        logger.error("Something went wrong on SeLoger: %s" % e)
     # Particulier a Particulier
-    check_website(db, logger, pap, session_pap, 'url_pap')
+    try:
+        check_website(db, logger, pap, session_pap, 'url_pap')
+    except Exception, e:
+        logger.error("Something went wrong on PAP: %s" % e)
     db.commit()
 
 
 def request_links(db):
-    request = "select rowid, url, title, img "
+    request = "select rowid, url, title, img, desc "
     request += "from links where emailed=0;"
     return db.execute(request)
 
@@ -114,10 +124,12 @@ def get_new_links(db, logger):
     text = '<ul>\n'
     links = request_links(db)
     nb_links = 0
-    for rowid, link, title, img in links:
+    for rowid, link, title, img, desc in links:
         logger.info("We have new link : {link}.".format(link=link))
         text += '<li><a href="{link}">'.format(link=link)
         text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
+        if desc:
+            text += desc.encode('utf-8', 'ignore')
         text += '<img src="{img}"></li>\n'.format(img=img)
         nb_links += 1
     text += '</ul>\n'
@@ -126,7 +138,7 @@ def get_new_links(db, logger):
 
 def emailed_links(db):
     links = request_links(db)
-    for rowid, url, title, img in links:
+    for rowid, url, title, img, desc in links:
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
     db.commit()
 
