@@ -5,10 +5,6 @@ from requests.exceptions import ConnectionError
 import argparse
 from bs4 import BeautifulSoup as bs
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
-}
-
 
 #
 # Price
@@ -78,7 +74,7 @@ def get_img(article, logger):
 #
 # This is for requests handling
 #
-def check(session, target, logger):
+def check(session, target, logger, headers):
     # session = requests.Session()
     try:
         response = session.get('http://www.seloger.com?', headers=headers)
@@ -93,6 +89,7 @@ def check(session, target, logger):
     if "Une erreur" in response.text:
         logger.error("SeLoger Error")
         return []
+
     soup = bs(response.text, "lxml")
     links = []
     for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):#select('article.cartouche.life_annuity'):

@@ -19,6 +19,12 @@ Create a file: "configuration.json"
 
 For each website you can put an url or a list of urls.
 
+You can change your user-agent in the configuration file. Just add:
+
+```
+   "user-agent": "Mozilla/5.0 (foo; bar;  rv:00.0) foobar/00.0"
+```
+
 Dependencies
 ------------
 

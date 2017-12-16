@@ -76,12 +76,15 @@ def add_to_db(db, infos):
 
 
 def check_website(db, logger, website, session, url):
+    headers = {}
+    if 'User-Agent' in configuration:
+        headers['User-Agent'] = configuration['User-Agent']
     if url in configuration:
         if isinstance(configuration[url], basestring):
             infos = website.check(session, configuration[url],
                               logger)
             add_to_db(db, infos)
-        elif all(isinstance(item, basestring) for item in configuration[url]): # check iterable for stringness of all items. Will raise TypeError if some_object is not iterable
+        elif all(isinstance(item, basestring) for item in configuration[url]):
             for link in configuration[url]:
                 infos = website.check(session, link, logger)
                 add_to_db(db, infos)
