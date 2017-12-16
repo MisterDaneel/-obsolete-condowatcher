@@ -51,7 +51,7 @@ def get_img(a_tag):
 #
 # This is for requests handling
 #
-def check_lbc(session, target, logger):
+def check(session, target, logger):
     try:
         response = session.get(target)
     except ConnectionError as e:

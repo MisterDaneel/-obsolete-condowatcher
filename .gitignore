@@ -1,5 +1,6 @@
 *.pyc
 *.swp
+*.swo
 *~
 configuration.json
 tests/

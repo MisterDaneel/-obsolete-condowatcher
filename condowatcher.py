@@ -75,17 +75,25 @@ def add_to_db(db, infos):
         db.execute(request, (datetime.now(), url, title, img))
 
 
+def check_website(db, logger, website, session, url):
+    if url in configuration:
+        if isinstance(configuration[url], basestring):
+            infos = website.check(session, configuration[url],
+                              logger)
+            add_to_db(db, infos)
+        elif all(isinstance(item, basestring) for item in configuration[url]): # check iterable for stringness of all items. Will raise TypeError if some_object is not iterable
+            for link in configuration[url]:
+                infos = website.check(session, link, logger)
+                add_to_db(db, infos)
+        else:
+            raise
+
+
 def check_websites(db, logger):
     # LeBonCoin
-    if 'url_leboncoin' in configuration:
-        for link in configuration['url_leboncoin']:
-            infos = lbc.check_lbc(session_lbc, link, logger)
-            add_to_db(db, infos)
+    check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
     # SeLoger
-    if 'url_seloger' in configuration:
-        infos = slg.check_slg(session_slg, configuration['url_seloger'],
-                              logger)
-        add_to_db(db, infos)
+    check_website(db, logger, slg, session_slg, 'url_seloger')
     db.commit()
 
 

@@ -78,7 +78,7 @@ def get_img(article, logger):
 #
 # This is for requests handling
 #
-def check_slg(session, target, logger):
+def check(session, target, logger):
     # session = requests.Session()
     try:
         response = session.get('http://www.seloger.com?', headers=headers)
@@ -102,7 +102,7 @@ def check_slg(session, target, logger):
         a = listing_infos.find('a', attrs={'class': "c-pa-link"})
 
         # href
-        href = a.attrs.get('href').replace('x-thread', 'http')
+        href = 'http:' + a.attrs.get('href')
         logger.debug("href: %s" % href)
 
         if 'detailpolepo' in href:
@@ -119,7 +119,6 @@ def check_slg(session, target, logger):
         img = get_img(article, logger)
         # append
         links.append((href, title, img))
-
     if  not links:
         logger.error("SeLoger Error: Something wrong appends, no articles found")
     return links
