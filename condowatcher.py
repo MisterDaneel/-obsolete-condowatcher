@@ -80,8 +80,8 @@ def add_to_db(db, infos):
 
 def check_website(db, logger, website, session, url):
     headers = {}
-    if 'User-Agent' in configuration:
-        headers['User-Agent'] = configuration['User-Agent']
+    if 'headers' in configuration:
+        headers = configuration['headers']
     if url in configuration:
         if isinstance(configuration[url], basestring):
             infos = website.check(session, configuration[url],

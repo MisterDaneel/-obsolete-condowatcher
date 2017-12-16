@@ -14,7 +14,6 @@ def get_price(listing_infos, logger):
         amount = listing_infos.find('span',
                                     attrs={"class": "c-pa-cprice"})
         price = amount.text.strip()
-        logger.debug("price: %s" % price)        
         return price
     except:
         logger.error("SeLoger NoPrice")
@@ -45,7 +44,6 @@ def get_properties(listing_infos, logger):
         if property_list:
             for em in property_list.findAll('em'):
                 properties += ' - ' + em.text
-        logger.debug("properties: %s" % properties)
         return properties
     except:
         logger.error("SeLoger NoInfos")
@@ -79,18 +77,21 @@ def check(session, target, logger, headers):
         response = session.get('http://www.seloger.com?', headers=headers)
     except ConnectionError as e:
         logger.error(e)
-        return []
+        raise
+
     try:
         response = session.get(target, headers=headers)
     except ConnectionError as e:
         logger.error(e)
-        return []
+        raise
+
     if "Une erreur" in response.text:
         logger.error("SeLoger Error")
-        return []
+        raise
 
     soup = bs(response.text, "lxml")
     links = []
+
     for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):
         logger.debug("Article found")
 
@@ -120,6 +121,8 @@ def check(session, target, logger, headers):
 
         # append
         links.append((href, title, img, desc))
+
     if  not links:
         logger.error("SeLoger Error: Something wrong appends, no articles found")
+
     return links

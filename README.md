@@ -20,10 +20,13 @@ Create a file: "configuration.json"
 
 For each website you can put an url or a list of urls.
 
-You can change your user-agent in the configuration file. Just add:
+You can change your HTTP headers in the configuration file. Just add:
 
 ```
-   "user-agent": "Mozilla/5.0 (foo; bar;  rv:00.0) foobar/00.0"
+   "headers": {"User-Agent": "Mozilla/5.0 (foo; bar;  rv:00.0) foobar/00.0",
+               "Accept-Language": "en-US,en;q=0.5"}
+                "Connection": "keep-alive",
+                "DNT": "1"}
 ```
 
 Dependencies
