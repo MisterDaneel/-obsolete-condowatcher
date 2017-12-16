@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding: utf-8
 
 import os
 import json
@@ -13,6 +14,7 @@ from email.mime.text import MIMEText
 from datetime import datetime
 from modules import lbc
 from modules import slg
+from modules import pap
 from time import sleep
 from argparse import ArgumentParser
 from sys import argv
@@ -82,11 +84,11 @@ def check_website(db, logger, website, session, url):
     if url in configuration:
         if isinstance(configuration[url], basestring):
             infos = website.check(session, configuration[url],
-                              logger)
+                              logger, headers)
             add_to_db(db, infos)
         elif all(isinstance(item, basestring) for item in configuration[url]):
             for link in configuration[url]:
-                infos = website.check(session, link, logger)
+                infos = website.check(session, link, logger, headers)
                 add_to_db(db, infos)
         else:
             raise
@@ -97,6 +99,8 @@ def check_websites(db, logger):
     check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
     # SeLoger
     check_website(db, logger, slg, session_slg, 'url_seloger')
+    # Particulier a Particulier
+    check_website(db, logger, pap, session_pap, 'url_pap')
     db.commit()
 
 
@@ -190,6 +194,7 @@ else:
 db_dir = create_db(work_dir)
 session_slg = requests.Session()
 session_lbc = requests.Session()
+session_pap = requests.Session()
 while (True):
     db = sqlite3.connect(db_dir)
     check_websites(db, logger)

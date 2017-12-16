@@ -13,7 +13,8 @@ Create a file: "configuration.json"
    "waiting_time": 300,
    "url_leboncoin": ["https://www.leboncoin.fr/ventes_immobilieres/offres/foo/bar/?...",
                      "https://www.leboncoin.fr/ventes_immobilieres/offres/foo/bar/?..."],
-   "url_seloger": "http://www.seloger.com/list.htm?..."
+   "url_seloger": "http://www.seloger.com/list.htm?...",
+   "url_pap": "https://www.pap.fr/annonce/vente-immobiliere-..."
 }
 ```
 

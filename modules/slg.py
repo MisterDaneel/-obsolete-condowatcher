@@ -58,7 +58,7 @@ def get_properties(listing_infos, logger):
 def get_img(article, logger):
     try:
         div = article.find('div', attrs={"class": "slideContent"})
-        img = div.find('div')#, attrs={"class": "listing_photo"})
+        img = div.find('div')
         img = img.get('data-lazy')
 
         dict = ast.literal_eval(img)
@@ -75,7 +75,6 @@ def get_img(article, logger):
 # This is for requests handling
 #
 def check(session, target, logger, headers):
-    # session = requests.Session()
     try:
         response = session.get('http://www.seloger.com?', headers=headers)
     except ConnectionError as e:
@@ -92,7 +91,7 @@ def check(session, target, logger, headers):
 
     soup = bs(response.text, "lxml")
     links = []
-    for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):#select('article.cartouche.life_annuity'):
+    for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):
         logger.debug("Article found")
 
         listing_infos = article.find('div', attrs={"class": "c-pa-info"})
