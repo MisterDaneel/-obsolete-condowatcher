@@ -24,9 +24,9 @@ You can change your HTTP headers in the configuration file. Just add:
 
 ```
    "headers": {"User-Agent": "Mozilla/5.0 (foo; bar;  rv:00.0) foobar/00.0",
-               "Accept-Language": "en-US,en;q=0.5"}
-                "Connection": "keep-alive",
-                "DNT": "1"}
+               "Accept-Language": "en-US,en;q=0.5",
+               "Connection": "keep-alive",
+               "DNT": "1"}
 ```
 
 Dependencies

@@ -79,6 +79,7 @@ def check(session, target, logger, headers):
         # href
         href_base = target.split('/annonce')[0]
         href = href_base + href
+        logger.debug("href: %s" % href)
 
         # title
         title = 'PAP: '

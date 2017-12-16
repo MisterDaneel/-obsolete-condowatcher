@@ -66,6 +66,8 @@ def check(session, target, logger, headers):
 
         # href
         href = href.replace('//www', 'https://www')
+        logger.debug("href: %s" % href)
+
         item_infos = list_item.find('section', attrs={"class": "item_infos"})
 
         # title

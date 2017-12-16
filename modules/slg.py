@@ -27,7 +27,6 @@ def get_locality(listing_infos, logger):
     try:
         div = listing_infos.find('div', attrs={"class": "c-pa-city"})
         locality = div.text.strip()
-        logger.debug("locality: %s" % locality)
         return locality
     except:
         logger.error("SeLoger locality")
@@ -62,7 +61,6 @@ def get_img(article, logger):
         dict = ast.literal_eval(img)
         img = dict['url']
 
-        logger.debug('img: %s' % img)
         return img
     except:
         logger.error("SeLoger NoImg")
@@ -93,8 +91,6 @@ def check(session, target, logger, headers):
     links = []
 
     for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):
-        logger.debug("Article found")
-
         listing_infos = article.find('div', attrs={"class": "c-pa-info"})
         a = listing_infos.find('a', attrs={'class': "c-pa-link"})
 

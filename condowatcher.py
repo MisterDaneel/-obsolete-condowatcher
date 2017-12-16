@@ -29,6 +29,9 @@ def create_logger(work_dir, debug=False):
     logger = logging.getLogger("")
     if debug:
         logger.setLevel(logging.DEBUG)
+        requests_log = logging.getLogger("requests.packages.urllib3")
+        requests_log.setLevel(logging.DEBUG)
+        requests_log.propagate = True
     else:
         logger.setLevel(logging.INFO)
 
