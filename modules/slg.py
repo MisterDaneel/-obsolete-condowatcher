@@ -6,55 +6,56 @@ import argparse
 from bs4 import BeautifulSoup as bs
 
 
-#
-# Price
-#
-def get_price(listing_infos, logger):
-    try:
-        amount = listing_infos.find('span',
-                                    attrs={"class": "c-pa-cprice"})
-        price = amount.text.strip()
-        return price
-    except:
-        logger.error("SeLoger NoPrice")
-        return ''
+class SLG():
+    def __init__(self, headers):
+        self.headers = headers
+        self.session = requests.Session()
+        try:
+            response = self.session.get('http://www.seloger.com?', headers=headers)
+        except ConnectionError as e:
+            raise
+ 
+    def get_articles(self, target):
+        try:
+            response = self.session.get(target, headers=self.headers)
+        except ConnectionError as e:
+            raise
+        soup = bs(response.text, "lxml")
+        return soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '})
 
+    def get_href(self, article):
+        a = article.find('a', attrs={'class': "c-pa-link"})
+        href = 'http:' + a.attrs.get('href')
+        return href[:href.index(".htm")] + '.htm'
 
-#
-# Properties
-#
-def get_locality(listing_infos, logger):
-    try:
-        div = listing_infos.find('div', attrs={"class": "c-pa-city"})
+    def get_locality(self, article):
+        div = article.find('div', attrs={"class": "c-pa-city"})
         locality = div.text.strip()
         return locality
-    except:
-        logger.error("SeLoger locality")
-        return None
 
-
-#
-# Properties
-#
-def get_properties(listing_infos, logger):
-    try:
-        property_list = listing_infos.find('div', attrs={"class": "c-pa-criterion"})
+    def get_properties(self, article):
+        property_list = article.find('div', attrs={"class": "c-pa-criterion"})
         properties = ''
         if property_list:
             for em in property_list.findAll('em'):
                 properties += ' - ' + em.text
         return properties
-    except:
-        logger.error("SeLoger NoInfos")
-        return ''
 
+    def get_title(self, article):
+        title = 'SeLoger: '
+        title += self.get_locality(article)
+        title += self.get_properties(article)
+        return title
 
-#
-# Image
-#
-def get_img(article, logger):
-    try:
+    def get_price(self, article):
+        amount = article.find('span', attrs={"class": "c-pa-cprice"})
+        price = ''.join([s for s in amount.text.split() if s.isdigit()])
+        return price
+
+    def get_img(self, article):
         div = article.find('div', attrs={"class": "slideContent"})
+        if not div:
+            return ''
         img = div.find('div')
         img = img.get('data-lazy')
 
@@ -62,90 +63,17 @@ def get_img(article, logger):
         img = dict['url']
 
         return img
-    except:
-        logger.error("SeLoger NoImg")
-        return ''
 
+    def get_phone(self, pageSoup):
+        button = pageSoup.find('button', attrs={"class": "btn-phone b-btn b-second fi fi-phone tagClick"})
+        return button.get('data-phone')
 
-#
-# Phone
-#
-def get_phone(pageSoup):
-    button = pageSoup.find('button', attrs={"class": "btn-phone b-btn b-second fi fi-phone tagClick"})
-    # print button.get('data-phone')
-    return button.get('data-phone')
-
-
-#
-# Description
-#
-def get_description(pageSoup):
-    description = pageSoup.find('input', attrs={"name": "description"})
-    desc = '<table>'
-    desc += '<tr>%s</tr>' % description.get('value')
-    desc += '<tr>%s</tr>' % get_phone(pageSoup)
-    desc += '</table>'
-    return desc
-
-
-#
-# This is for requests handling
-#
-def check(session, target, logger, headers):
-    try:
-        response = session.get('http://www.seloger.com?', headers=headers)
-    except ConnectionError as e:
-        logger.error(e)
-        raise
-
-    try:
-        response = session.get(target, headers=headers)
-    except ConnectionError as e:
-        logger.error(e)
-        raise
-
-    if "Une erreur" in response.text:
-        logger.error("SeLoger Error")
-        raise
-
-    soup = bs(response.text, "lxml")
-    links = []
-
-    for article in soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '}):
-        listing_infos = article.find('div', attrs={"class": "c-pa-info"})
-        a = listing_infos.find('a', attrs={'class': "c-pa-link"})
-
-        # href
-        href = 'http:' + a.attrs.get('href')
-        href = href[:href.index(".htm")] + '.htm'
-        logger.debug("href: %s" % href)
-
-        if 'detailpolepo' in href:
-            continue
-
-        # title
-        title = 'SeLoger: '
-        title += get_locality(listing_infos, logger)
-        title += get_properties(listing_infos, logger)
-
-        title += ' - '
-        title += get_price(listing_infos, logger)
-
-        # img
-        img = get_img(article, logger)
-
-        # description
-        try:
-            response = session.get(href, headers=headers)
-            desc = get_description(bs(response.text, "lxml"))
-        except ConnectionError as e:
-            desc = ''
-            logger.error(e)
-
-        # append
-        links.append((href, title, img, desc))
-
-    if  not links:
-        logger.error("SeLoger Error: Something wrong appends, no articles found")
-
-    return links
+    def get_description(self, href):
+        response = self.session.get(href, headers=self.headers)
+        pageSoup = bs(response.text, "lxml")
+        description = pageSoup.find('input', attrs={"name": "description"})
+        desc = '<table>'
+        desc += '<tr>%s</tr>' % description.get('value')
+        desc += '<tr>%s</tr>' % self.get_phone(pageSoup)
+        desc += '</table>'
+        return desc

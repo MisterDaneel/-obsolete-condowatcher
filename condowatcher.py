@@ -7,9 +7,9 @@ import argparse
 import requests
 import sqlite3
 import smtplib
+import traceback
 import logging
 import logging.handlers
-from random import randint
 from email.mime.text import MIMEText
 from datetime import datetime
 from modules import lbc
@@ -17,7 +17,7 @@ from modules import slg
 from modules import pap
 from time import sleep
 from argparse import ArgumentParser
-from sys import argv
+from sys import argv, exc_info
 from os import path
 
 
@@ -55,12 +55,11 @@ def create_db(work_dir):
 
     columns = [
         "date DATETIME",
-        "url TEXT UNIQUE",
+        "href TEXT UNIQUE",
         "title TEXT UNIQUE",
+        "price TEXT UNIQUE",
         "img TEXT UNIQUE",
         "desc TEXT UNIQUE",
-        "nb_views INTEGER",
-        "seen BOOL DEFAULT 0",
         "emailed BOOL DEFAULT 0"
     ]
 
@@ -73,49 +72,76 @@ def create_db(work_dir):
     return db_dir
 
 
-def add_to_db(db, infos):
-    for url, title, img, desc in infos:
-        request = "insert or ignore into links "
-        request += "('date', 'url', 'title', 'img', 'desc') "
-        request += "values (?,?,?,?,?);"
-        db.execute(request, (datetime.now(), url, title, img, desc))
+def request_price(db, href):
+    request = "select price "
+    request += "from links "
+    request += "where href=\"{href}\";".format(href=href)
+    return db.execute(request)
 
 
-def check_website(db, logger, website, session, url):
-    try:
-        headers = {}
-        if 'headers' in configuration:
-            headers = configuration['headers']
-        if url in configuration:
-            if isinstance(configuration[url], basestring):
-                infos = website.check(session, configuration[url],
-                                  logger, headers)
-                add_to_db(db, infos)
-            elif all(isinstance(item, basestring) for item in configuration[url]):
-                for link in configuration[url]:
-                    infos = website.check(session, link, logger, headers)
-                    add_to_db(db, infos)
-            else:
-                raise
-    except Exception, e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        logger.error("Something went wrong: (%s,%s) %s" % (fname, exc_tb.tb_lineno, e))
+def check_informations(db, obj, article):
+    href = obj.get_href(article)
+    if not href:
+        return
+    title = obj.get_title(article)
+    price = obj.get_price(article)
+    img = obj.get_img(article)
+    for price_db in request_price(db, href):
+        if not (int(price) < int(price_db[0])):
+            return
+    desc = obj.get_description(href)
+    request = "insert or ignore into links "
+    request += "('date', 'href', 'title', 'price', 'img', 'desc') "
+    request += "values (?,?,?,?,?,?);"
+    db.execute(request, (datetime.now(), href, title, price, img, desc))
 
 
-def check_websites(db, logger):
-    # LeBonCoin
-    check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
-    # SeLoger
-    check_website(db, logger, slg, session_slg, 'url_seloger')
-    # Particulier a Particulier
-    check_website(db, logger, pap, session_pap, 'url_pap')
+def check_website(db, obj, url):
+    articles = obj.get_articles(url)
+    for article in articles:
+        try:
+            check_informations(db, obj, article)
+        except Exception, e:
+            _, _, tb = exc_info()
+            print traceback.print_tb(tb)
+            fname = os.path.split(tb.tb_frame.f_code.co_filename)[1]
+            logger.error("Something went wrong: (%s,%s) %s" % (fname, tb.tb_lineno, e))
+
+
+def check_url_configuration(db, obj, url):
+    if not obj:
+        logger.error("Something went wrong")
+        return
+    if url in configuration:
+        if isinstance(configuration[url], basestring):
+            infos = check_website(db, obj, configuration[url])
+        elif all(isinstance(item, basestring) for item in configuration[url]):
+            for link in configuration[url]:
+                check_website(db, obj, link)
+        else:
+            raise
     db.commit()
 
 
+def check_websites(db, logger):
+    headers = {}
+    if 'headers' in configuration:
+        headers = configuration['headers']
+
+    # Particulier a Particulier
+    check_url_configuration(db, pap.PAP(headers), 'url_pap')
+
+    # SeLoger
+    check_url_configuration(db, slg.SLG(headers), 'url_seloger')
+
+    # LeBonCoin
+    check_url_configuration(db, lbc.LBC(headers), 'url_leboncoin')
+
+
 def request_links(db):
-    request = "select rowid, url, title, img, desc "
-    request += "from links where emailed=0;"
+    request = "select rowid, href, title, price, img, desc "
+    request += "from links "
+    request += "where emailed=0;"
     return db.execute(request)
 
 
@@ -123,11 +149,12 @@ def get_new_links(db, logger):
     text = '<ul>\n'
     links = request_links(db)
     nb_links = 0
-    for rowid, link, title, img, desc in links:
-        logger.info("We have new link : {link}.".format(link=link))
+    for rowid, href, title, price, img, desc in links:
+        logger.info("We have new link : {href}.".format(href=href))
         text += '<li>'
-        text += '<a href="{link}"><strong>'.format(link=link)
+        text += '<a href="{href}"><strong>'.format(href=href)
         text += '{title}'.format(title=title.encode('utf-8', 'ignore'))
+        text += ' - {price}'.format(price=price.encode('utf-8', 'ignore'))
         text += '</strong></a>'
         text += '<br/>'
         text += '<blockquote>'
@@ -145,7 +172,7 @@ def get_new_links(db, logger):
 
 def emailed_links(db):
     links = request_links(db)
-    for rowid, url, title, img, desc in links:
+    for rowid, url, title, price, img, desc in links:
         db.execute("update links set emailed=1 where rowid=?", (rowid,))
     db.commit()
 
@@ -173,12 +200,10 @@ def send_mail(nb_links, msg, logger):
         except:
             logger.info("We failed to send an email to: %s" % (mail['To']))
             wait(120)
+
     return False
 
-
 def wait(waiting_time):
-    rand_int = randint(-10, 10)
-    waiting_time = (waiting_time * rand_int) / 100
     sleep(configuration['waiting_time'])
 
 #
@@ -211,9 +236,6 @@ if args.verbose:
 else:
     logger = create_logger(work_dir, False)
 db_dir = create_db(work_dir)
-session_slg = requests.Session()
-session_lbc = requests.Session()
-session_pap = requests.Session()
 while (True):
     db = sqlite3.connect(db_dir)
     check_websites(db, logger)
