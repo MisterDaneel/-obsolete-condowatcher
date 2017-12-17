@@ -129,12 +129,19 @@ def get_new_links(db, logger):
     nb_links = 0
     for rowid, link, title, img, desc in links:
         logger.info("We have new link : {link}.".format(link=link))
-        text += '<li><a href="{link}">'.format(link=link)
-        text += '{title}</a><br>\n'.format(title=title.encode('utf-8'))
+        text += '<li>'
+        text += '<a href="{link}"><strong>'.format(link=link)
+        text += '{title}'.format(title=title.encode('utf-8', 'ignore'))
+        text += '</strong></a>'
+        text += '<br/>'
+        text += '<blockquote>'
+        text += '<table>'
+        text += '<tr><img src="{img}"></tr>'.format(img=img)
         if desc:
-            text += desc.encode('utf-8', 'ignore')
-            text += '<br>\n'
-        text += '<img src="{img}"></li>\n'.format(img=img)
+            text += '<tr>{desc}</tr>'.format(desc=desc.encode('utf-8', 'ignore'))
+        text += '</table>'
+        text += '</blockquote>'
+        text += '</li>'
         nb_links += 1
     text += '</ul>\n'
     return (nb_links, text)

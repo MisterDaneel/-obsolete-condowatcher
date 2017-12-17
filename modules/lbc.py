@@ -2,7 +2,7 @@ import re
 from requests.exceptions import ConnectionError
 import argparse
 from bs4 import BeautifulSoup as bs
-
+import bs4
 
 #
 # Price
@@ -49,11 +49,32 @@ def get_img(a_tag):
 
 
 #
+# Phone
+#
+def get_phone(pageSoup):
+    button = pageSoup.find('button', attrs={"class": "btn-phone b-btn b-second fi fi-phone tagClick"})
+    return button.get('data-phone')
+
+
+#
 # Description
 #
 def get_description(pageSoup):
     description = pageSoup.find('p', attrs={"itemprop": "description"})
-    return description.text
+    desc = ''
+    for el in description.contents:
+        if type(el) == bs4.element.Tag:
+            if el.name == 'br':
+                desc += '<br/>'
+            else:
+                None
+        elif type(el) == bs4.element.NavigableString:
+            desc += unicode(el)
+    desc_table = '<table>'
+    desc_table += '<tr>%s</tr>' % desc
+    # desc_table += '<tr>%s</tr>' % get_phone(pageSoup)
+    desc_table += '</table>'
+    return desc_table
 
 
 #

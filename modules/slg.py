@@ -68,6 +68,27 @@ def get_img(article, logger):
 
 
 #
+# Phone
+#
+def get_phone(pageSoup):
+    button = pageSoup.find('button', attrs={"class": "btn-phone b-btn b-second fi fi-phone tagClick"})
+    # print button.get('data-phone')
+    return button.get('data-phone')
+
+
+#
+# Description
+#
+def get_description(pageSoup):
+    description = pageSoup.find('input', attrs={"name": "description"})
+    desc = '<table>'
+    desc += '<tr>%s</tr>' % description.get('value')
+    desc += '<tr>%s</tr>' % get_phone(pageSoup)
+    desc += '</table>'
+    return desc
+
+
+#
 # This is for requests handling
 #
 def check(session, target, logger, headers):
@@ -96,6 +117,7 @@ def check(session, target, logger, headers):
 
         # href
         href = 'http:' + a.attrs.get('href')
+        href = href[:href.index(".htm")] + '.htm'
         logger.debug("href: %s" % href)
 
         if 'detailpolepo' in href:
@@ -112,8 +134,13 @@ def check(session, target, logger, headers):
         # img
         img = get_img(article, logger)
 
-        # desc
-        desc = ''
+        # description
+        try:
+            response = session.get(href, headers=headers)
+            desc = get_description(bs(response.text, "lxml"))
+        except ConnectionError as e:
+            desc = ''
+            logger.error(e)
 
         # append
         links.append((href, title, img, desc))

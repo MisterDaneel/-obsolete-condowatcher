@@ -2,7 +2,7 @@ import re
 from requests.exceptions import ConnectionError
 import argparse
 from bs4 import BeautifulSoup as bs
-
+import bs4
 
 #
 # Price
@@ -56,6 +56,23 @@ def get_desc(list_item):
 
 
 #
+# Description
+#
+def get_description(pageSoup):
+    description = pageSoup.find('p', attrs={"class": "item-description"})
+    desc = ''
+    for el in description.contents:
+        if type(el) == bs4.element.Tag:
+            if el.name == 'br':
+                desc += '<br/>'
+            else:
+                None
+        elif type(el) == bs4.element.NavigableString:
+            desc += unicode(el)
+    return desc
+
+
+#
 # This is for requests handling
 #
 
@@ -92,8 +109,13 @@ def check(session, target, logger, headers):
         # img
         img = get_img(list_item)
 
-        # img
-        desc = get_desc(list_item)
+        # description
+        try:
+            response = session.get(href, headers=headers)
+            desc = get_description(bs(response.text, "lxml"))
+        except ConnectionError as e:
+            desc = ''
+            logger.error(e)
 
         # append
         links.append((href, title, img, desc))
