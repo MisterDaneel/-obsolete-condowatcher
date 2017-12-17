@@ -82,38 +82,34 @@ def add_to_db(db, infos):
 
 
 def check_website(db, logger, website, session, url):
-    headers = {}
-    if 'headers' in configuration:
-        headers = configuration['headers']
-    if url in configuration:
-        if isinstance(configuration[url], basestring):
-            infos = website.check(session, configuration[url],
-                              logger, headers)
-            add_to_db(db, infos)
-        elif all(isinstance(item, basestring) for item in configuration[url]):
-            for link in configuration[url]:
-                infos = website.check(session, link, logger, headers)
+    try:
+        headers = {}
+        if 'headers' in configuration:
+            headers = configuration['headers']
+        if url in configuration:
+            if isinstance(configuration[url], basestring):
+                infos = website.check(session, configuration[url],
+                                  logger, headers)
                 add_to_db(db, infos)
-        else:
-            raise
+            elif all(isinstance(item, basestring) for item in configuration[url]):
+                for link in configuration[url]:
+                    infos = website.check(session, link, logger, headers)
+                    add_to_db(db, infos)
+            else:
+                raise
+    except Exception, e:
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        logger.error("Something went wrong: (%s,%s) %s" % (fname, exc_tb.tb_lineno, e))
 
 
 def check_websites(db, logger):
     # LeBonCoin
-    try:
-        check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
-    except Exception, e:
-        logger.error("Something went wrong on LeBonCoin: %s" % e)
+    check_website(db, logger, lbc, session_lbc, 'url_leboncoin')
     # SeLoger
-    try:
-        check_website(db, logger, slg, session_slg, 'url_seloger')
-    except Exception, e:
-        logger.error("Something went wrong on SeLoger: %s" % e)
+    check_website(db, logger, slg, session_slg, 'url_seloger')
     # Particulier a Particulier
-    try:
-        check_website(db, logger, pap, session_pap, 'url_pap')
-    except Exception, e:
-        logger.error("Something went wrong on PAP: %s" % e)
+    check_website(db, logger, pap, session_pap, 'url_pap')
     db.commit()
 
 
