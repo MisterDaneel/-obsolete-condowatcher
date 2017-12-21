@@ -11,14 +11,14 @@ import bs4
 #
 class PAP():
     def __init__(self, headers):
-        self.headers = headers
         self.session = requests.Session()
+        self.session.headers = headers
         self.target = ''
 
     def get_articles(self, target):
         self.target = target
         try:
-            response = self.session.get(target, headers=self.headers)
+            response = self.session.get(target)
         except ConnectionError as e:
             logger.error(e)
         soup = bs(response.text, "lxml")
@@ -68,7 +68,7 @@ class PAP():
         return ''
 
     def get_description(self, href):
-        response = self.session.get(href, headers=self.headers)
+        response = self.session.get(href)
         soup = bs(response.text, "lxml")
         description = soup.find('p', attrs={"class": "item-description"})
         desc = ''

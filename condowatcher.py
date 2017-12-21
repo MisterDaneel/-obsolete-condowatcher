@@ -49,6 +49,13 @@ def create_logger(work_dir, debug=False):
     return logger
 
 
+def crash_stack(e):
+    _, _, tb = exc_info()
+    print traceback.print_tb(tb)
+    fname = os.path.split(tb.tb_frame.f_code.co_filename)[1]
+    logger.error("Something went wrong: (%s,%s) %s" % (fname, tb.tb_lineno, e))
+
+
 def create_db(work_dir):
     db_dir = os.path.join(work_dir, "sqlite3")
     db = sqlite3.connect(db_dir)
@@ -94,18 +101,20 @@ def check_informations(db, obj, article):
     request += "('date', 'href', 'title', 'price', 'img', 'desc') "
     request += "values (?,?,?,?,?,?);"
     db.execute(request, (datetime.now(), href, title, price, img, desc))
+    db.commit()
 
 
 def check_website(db, obj, url):
-    articles = obj.get_articles(url)
-    for article in articles:
-        try:
-            check_informations(db, obj, article)
-        except Exception, e:
-            _, _, tb = exc_info()
-            print traceback.print_tb(tb)
-            fname = os.path.split(tb.tb_frame.f_code.co_filename)[1]
-            logger.error("Something went wrong: (%s,%s) %s" % (fname, tb.tb_lineno, e))
+    try:
+        articles = obj.get_articles(url)
+        for article in articles:
+            try:
+                check_informations(db, obj, article)
+            except Exception, e:
+                crash_stack(e)
+    except Exception, e:
+        crash_stack(e)
+        return 0
 
 
 def check_url_configuration(db, obj, url):
@@ -117,10 +126,10 @@ def check_url_configuration(db, obj, url):
             infos = check_website(db, obj, configuration[url])
         elif all(isinstance(item, basestring) for item in configuration[url]):
             for link in configuration[url]:
-                check_website(db, obj, link)
+                if check_website(db, obj, link) == 0:
+                    break
         else:
             raise
-    db.commit()
 
 
 def check_websites(db, logger):
@@ -198,6 +207,7 @@ def send_mail(nb_links, msg, logger):
             smtp.quit()
             return True
         except:
+            crash_stack(e)
             logger.info("We failed to send an email to: %s" % (mail['To']))
             wait(120)
 
