@@ -8,12 +8,12 @@ import bs4
 
 class LBC():
     def __init__(self, headers):
-        self.headers = headers
         self.session = requests.Session()
+        self.session.headers = headers
 
     def get_articles(self, target):
         try:
-            response = self.session.get(target, headers=self.headers)
+            response = self.session.get(target)
         except ConnectionError as e:
             raise
         soup = bs(response.text, "lxml")
@@ -65,7 +65,7 @@ class LBC():
         return ''
 
     def get_description(self, href):
-        response = self.session.get(href, headers=self.headers)
+        response = self.session.get(href)
         soup = bs(response.text, "lxml")
         description = soup.find('p', attrs={"itemprop": "description"})
         desc = ''

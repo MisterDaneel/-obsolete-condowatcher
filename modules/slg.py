@@ -1,6 +1,7 @@
 import re
 import ast
 import requests
+import time
 from requests.exceptions import ConnectionError
 import argparse
 from bs4 import BeautifulSoup as bs
@@ -8,24 +9,29 @@ from bs4 import BeautifulSoup as bs
 
 class SLG():
     def __init__(self, headers):
-        self.headers = headers
         self.session = requests.Session()
+        self.session.headers = headers
+        self.session.max_redirects = 1
+        self.session.allow_redirect = True
         try:
-            response = self.session.get('http://www.seloger.com?', headers=headers)
+            response = self.session.get('http://www.seloger.com?')
         except ConnectionError as e:
             raise
  
     def get_articles(self, target):
+        time.sleep(1)
         try:
-            response = self.session.get(target, headers=self.headers)
+            response = self.session.get(target)
         except ConnectionError as e:
             raise
+        #if response.status_code == 307:
+        #    return []
         soup = bs(response.text, "lxml")
         return soup.find_all('div', attrs={'class': 'c-pa-list c-pa-sl cartouche '})
 
     def get_href(self, article):
         a = article.find('a', attrs={'class': "c-pa-link"})
-        href = 'http:' + a.attrs.get('href')
+        href = a.attrs.get('href')
         return href[:href.index(".htm")] + '.htm'
 
     def get_locality(self, article):
@@ -69,7 +75,7 @@ class SLG():
         return button.get('data-phone')
 
     def get_description(self, href):
-        response = self.session.get(href, headers=self.headers)
+        response = self.session.get(href)
         pageSoup = bs(response.text, "lxml")
         description = pageSoup.find('input', attrs={"name": "description"})
         desc = '<table>'

@@ -49,6 +49,13 @@ def create_logger(work_dir, debug=False):
     return logger
 
 
+def crash_stack(e):
+    _, _, tb = exc_info()
+    print traceback.print_tb(tb)
+    fname = os.path.split(tb.tb_frame.f_code.co_filename)[1]
+    logger.error("Something went wrong: (%s,%s) %s" % (fname, tb.tb_lineno, e))
+
+
 def create_db(work_dir):
     db_dir = os.path.join(work_dir, "sqlite3")
     db = sqlite3.connect(db_dir)
@@ -56,10 +63,10 @@ def create_db(work_dir):
     columns = [
         "date DATETIME",
         "href TEXT UNIQUE",
-        "title TEXT UNIQUE",
-        "price TEXT UNIQUE",
-        "img TEXT UNIQUE",
-        "desc TEXT UNIQUE",
+        "title TEXT",
+        "price TEXT",
+        "img TEXT",
+        "desc TEXT",
         "emailed BOOL DEFAULT 0"
     ]
 
@@ -72,7 +79,7 @@ def create_db(work_dir):
     return db_dir
 
 
-def request_price(db, href):
+def exist(db, href):
     request = "select price "
     request += "from links "
     request += "where href=\"{href}\";".format(href=href)
@@ -86,26 +93,30 @@ def check_informations(db, obj, article):
     title = obj.get_title(article)
     price = obj.get_price(article)
     img = obj.get_img(article)
-    for price_db in request_price(db, href):
-        if not (int(price) < int(price_db[0])):
+    for price_db in exist(db, href):
+        if int(price) < int(price_db[0]):
+            None # delete in db
+        else:
             return
     desc = obj.get_description(href)
-    request = "insert or ignore into links "
+    request = "insert into links "
     request += "('date', 'href', 'title', 'price', 'img', 'desc') "
     request += "values (?,?,?,?,?,?);"
     db.execute(request, (datetime.now(), href, title, price, img, desc))
+    db.commit()
 
 
 def check_website(db, obj, url):
-    articles = obj.get_articles(url)
-    for article in articles:
-        try:
-            check_informations(db, obj, article)
-        except Exception, e:
-            _, _, tb = exc_info()
-            print traceback.print_tb(tb)
-            fname = os.path.split(tb.tb_frame.f_code.co_filename)[1]
-            logger.error("Something went wrong: (%s,%s) %s" % (fname, tb.tb_lineno, e))
+    try:
+        articles = obj.get_articles(url)
+        for article in articles:
+            try:
+                check_informations(db, obj, article)
+            except Exception, e:
+                crash_stack(e)
+    except Exception, e:
+        crash_stack(e)
+        return 0
 
 
 def check_url_configuration(db, obj, url):
@@ -117,10 +128,10 @@ def check_url_configuration(db, obj, url):
             infos = check_website(db, obj, configuration[url])
         elif all(isinstance(item, basestring) for item in configuration[url]):
             for link in configuration[url]:
-                check_website(db, obj, link)
+                if check_website(db, obj, link) == 0:
+                    break
         else:
             raise
-    db.commit()
 
 
 def check_websites(db, logger):
@@ -198,6 +209,7 @@ def send_mail(nb_links, msg, logger):
             smtp.quit()
             return True
         except:
+            crash_stack(e)
             logger.info("We failed to send an email to: %s" % (mail['To']))
             wait(120)
 
